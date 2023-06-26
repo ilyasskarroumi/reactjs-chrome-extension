@@ -27,7 +27,9 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@types/jquery": "^3.5.16",
     "autoprefixer": "^10.4.7",
+    "he": "^1.2.0",
     "moment": "^2.29.4",
     "postcss": "^8.4.14",
     "react-router-dom": "6.2",
