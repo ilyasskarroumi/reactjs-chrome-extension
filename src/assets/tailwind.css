@@ -6,3 +6,22 @@ body {
     height: 400px;
     width: 400px;
 }
+
+.render-card {
+    width: 300px;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+.render-card-content {
+    text-align: center;
+}
+.render-title {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+.render-number {
+    font-size: 18px;
+    font-weight: bold;
+}
