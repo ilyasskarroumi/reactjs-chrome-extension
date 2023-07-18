@@ -16,7 +16,7 @@ const Popup = () => {
         <div style={{display: "flex", justifyContent: "center"}}>
           <img
             className="block"
-            src="https://beta.mobioptions.com/static/media/argon-react.145d77702522ea432b33.png"
+            src="https://mobioptions.com/wp-content/uploads/2023/06/logo.png"
             width={200}
             alt="Logo"
           />
