@@ -1,47 +1,48 @@
 chrome.runtime.sendMessage('I am loading content script', (response) => {
-    var pageTitle = document.title;
-    const content = document.getElementById('content');
-    const url = new URL(window.location.href);
-    const searchParams = new URLSearchParams(url.search);
-    const id = searchParams.get("id");
-    if(pageTitle == "Not Found") {
-        content.innerHTML += notFound(id)
-    }
-    else {
-        const htmlContent = document.documentElement.outerHTML;
-        const regex = /{key:\s*'ds:6'([\s\S]*?)sideChannel:\s*{}}/g;
-        var extractedObject = null;
-        let match: RegExpExecArray | null;
-        while ((match = regex.exec(htmlContent)) !== null) {
-            const extractedString = match[0];
-            const jsonString = extractedString
-                .replace(/key:\s*'ds:6',?/, '') // Remove key: 'ds:6'
-                .replace(/hash:\s*'[^']*',?/, '') // Remove hash: '...'
-                .replace(/,\s*sideChannel:\s*{},?/, '') // Remove sideChannel: {}
-                .replace(/data:/, '"data":'); // Replace data with "data"
-            try {
-                extractedObject = JSON.parse(jsonString);
-            } catch (error) {
-                console.error('Error parsing JSON:', error);
+    let current_app_url = location.href;
+    setInterval(function () {
+        if (current_app_url != location.href) {
+            location.reload();
+        }
+    }, 500);
+    if(location.href.startsWith('https://play.google.com/store/apps/details')){
+        var pageTitle = document.title;
+        const url = new URL(window.location.href);
+        const searchParams = new URLSearchParams(url.search);
+        const id = searchParams.get("id");
+        if(pageTitle == "Not Found") {
+            const content = document.getElementById('content');
+            if(id && id !== '')
+                content.innerHTML += notFound(id)
+        }
+        else {
+            const htmlContent = document.documentElement.outerHTML;
+            const regex = /{key:\s*'ds:6'([\s\S]*?)sideChannel:\s*{}}/g;
+            var extractedObject = null;
+            let match: RegExpExecArray | null;
+            while ((match = regex.exec(htmlContent)) !== null) {
+                const extractedString = match[0];
+                const jsonString = extractedString
+                    .replace(/key:\s*'ds:6',?/, '') // Remove key: 'ds:6'
+                    .replace(/hash:\s*'[^']*',?/, '') // Remove hash: '...'
+                    .replace(/,\s*sideChannel:\s*{},?/, '') // Remove sideChannel: {}
+                    .replace(/data:/, '"data":'); // Replace data with "data"
+                try {
+                    extractedObject = JSON.parse(jsonString);
+                } catch (error) {
+                    console.error('Error parsing JSON:', error);
+                }
+            }
+            if(extractedObject) {
+                const targetDiv = document.querySelector('div.nRgZne').parentElement;
+                const url = new URL(window.location.href);
+                const searchParams = new URLSearchParams(url.search);
+                const id = searchParams.get("id");
+                targetDiv.innerHTML = found(calculateAge(extractedObject.data[1][2][10][0]), formatInstalls(extractedObject.data[1][2][13][2]), extractedObject.data[1][2][79][0][0][2], id, extractedObject.data[1][2][73][0][1]) + targetDiv.innerHTML
             }
         }
-        if(extractedObject) {
-            const targetDiv = document.querySelector('div.nRgZne').parentElement;
-            const url = new URL(window.location.href);
-            const searchParams = new URLSearchParams(url.search);
-            const id = searchParams.get("id");
-            targetDiv.innerHTML = found(calculateAge(extractedObject.data[1][2][10][0]), formatInstalls(extractedObject.data[1][2][13][2]), extractedObject.data[1][2][79][0][0][2], id, extractedObject.data[1][2][73][0][1]) + targetDiv.innerHTML
-        }
-        const appLinks = document.querySelectorAll('a.Si6A0c.nT2RTe');
-            appLinks.forEach((link) => {
-                link.addEventListener('click', () => {
-                    location.reload();
-            });
-        });
     }
 })
-
-console.log(111111)
 
 function formatInstalls(installs) {
     installs = parseInt(installs);
@@ -194,7 +195,7 @@ function found(appAge, installs, category, id, short) {
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
                 </div>
             </a>
-            <a href="https://apkpure.com/app/${id}" style="padding-left: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <a href="https://apkcombo.com/app/${id}" style="padding-left: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
                         <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
@@ -207,7 +208,7 @@ function found(appAge, installs, category, id, short) {
                             </svg>
                         </div>
                     </div>
-                    <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">ApkPure</div>
+                    <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">APKCombo</div>
                     <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
                 </div>

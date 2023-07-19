@@ -25,7 +25,7 @@
     },
     "content_scripts": [
         {
-            "matches": ["https://play.google.com/store/apps/details?id=*"],
+            "matches": ["https://play.google.com/store/*"],
             "js": ["contentScript.js"]
         }
     ]
