@@ -80,7 +80,7 @@ function calculateAge(dateOfBirth) {
 function notFound(id) {
     return `
         <div style="color: rgb(102, 102, 102); font-weight: bold; display: flex; justify-content: center; align-items: center; border-width: 1px; border-style: solid; border-color: rgb(161, 180, 217); border-image: initial; padding: 12px 0px;">
-            <a style="display: flex; color: rgb(102, 102, 102); text-decoration: none;" href="https://beta.mobioptions.com/details?id=${id}" target="_blank">
+            <a style="display: flex; color: rgb(102, 102, 102); text-decoration: none;" href="https://mobioptions.com/play/app/${id}" target="_blank">
                 <img width="75px" style="padding-right: 25px" src="https://mobioptions.com/wp-content/uploads/2023/06/logo.png">
                 <p>Check this app meta data has been stored at MobiOptions</p>
             </a>
