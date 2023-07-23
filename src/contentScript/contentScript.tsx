@@ -16,13 +16,13 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
         }
         else {
             const htmlContent = document.documentElement.outerHTML;
-            const regex = /{key:\s*'ds:5'([\s\S]*?)sideChannel:\s*{}}/g;
+            const regex = /{key:\s*'ds:6'([\s\S]*?)sideChannel:\s*{}}/g;
             var extractedObject = null;
             let match: RegExpExecArray | null;
             while ((match = regex.exec(htmlContent)) !== null) {
                 const extractedString = match[0];
                 const jsonString = extractedString
-                    .replace(/key:\s*'ds:5',?/, '') // Remove key: 'ds:6'
+                    .replace(/key:\s*'ds:6',?/, '') // Remove key: 'ds:6'
                     .replace(/hash:\s*'[^']*',?/, '') // Remove hash: '...'
                     .replace(/,\s*sideChannel:\s*{},?/, '') // Remove sideChannel: {}
                     .replace(/data:/, '"data":'); // Replace data with "data"
@@ -37,6 +37,7 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             var age = 'N/A'
             var installs = 'N/A'
             var category = 'N/A'
+            var short = 'N/A'
             try {
                 age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.data[1][2][10][0])))) || 'N/A';
             } catch (error) {}
@@ -46,7 +47,10 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             try {
                 category = extractedObject.data[1][2][79][0][0][2] || 'N/A';
             } catch (error) {}
-            targetDiv.innerHTML = found(age, installs, category, id, extractedObject.data[1][2][73][0][1]) + targetDiv.innerHTML
+            try {
+                short = extractedObject.data[1][2][73][0][1] || 'N/A';
+            } catch (error) {}
+            targetDiv.innerHTML = found(age, installs, category, id, short) + targetDiv.innerHTML
         }
     }
 })
