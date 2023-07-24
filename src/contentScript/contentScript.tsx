@@ -16,19 +16,22 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
         }
         else {
             const htmlContent = document.documentElement.outerHTML;
-            const regex = /{key:\s*'ds:6'([\s\S]*?)sideChannel:\s*{}}/g;
+            const regex = /{key:\s*'ds:\d+'([\s\S]*?)sideChannel:\s*{}}/g;
             var extractedObject = null;
             let match: RegExpExecArray | null;
+            let shouldBreak = false;
             while ((match = regex.exec(htmlContent)) !== null) {
-                const extractedString = match[0];
-                const jsonString = extractedString
-                    .replace(/key:\s*'ds:6',?/, '') // Remove key: 'ds:6'
-                    .replace(/hash:\s*'[^']*',?/, '') // Remove hash: '...'
-                    .replace(/,\s*sideChannel:\s*{},?/, '') // Remove sideChannel: {}
-                    .replace(/data:/, '"data":'); // Replace data with "data"
-                try {
-                    extractedObject = JSON.parse(jsonString);
-                } catch (error) {}
+                for (let i = 0; i < match.length; i++) {
+                    try {
+                        extractedObject = JSON.parse(match[i].replace(/key:\s*'ds:\d+',?/, '').replace(/hash:\s*'[^']*',?/, '').replace(/,\s*sideChannel:\s*{},?/, '').replace(/data:/, '"data":'));
+                        if (extractedObject.data[1][2][10][0] || extractedObject.data[1][2][13][2] || extractedObject.data[1][2][79][0][0][2] || extractedObject.data[1][2][73][0][1]) {
+                            shouldBreak = true
+                            break;
+                        }
+                    } catch (error) {}
+                }
+                if (shouldBreak)
+                    break;
             }
             const targetDiv = document.querySelector('div.nRgZne').parentElement;
             const url = new URL(window.location.href);
