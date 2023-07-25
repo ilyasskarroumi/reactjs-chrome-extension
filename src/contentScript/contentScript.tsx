@@ -20,11 +20,28 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             var extractedObject = null;
             let match: RegExpExecArray | null;
             let shouldBreak = false;
+            var age = 'N/A';
+            var installs = 'N/A';
+            var category = 'N/A';
+            var short = 'N/A';
             while ((match = regex.exec(htmlContent)) !== null) {
                 for (let i = 0; i < match.length; i++) {
                     try {
                         extractedObject = JSON.parse(match[i].replace(/key:\s*'ds:\d+',?/, '').replace(/hash:\s*'[^']*',?/, '').replace(/,\s*sideChannel:\s*{},?/, '').replace(/data:/, '"data":'));
-                        if (extractedObject.data[1][2][10][0] || extractedObject.data[1][2][13][2] || extractedObject.data[1][2][79][0][0][2] || extractedObject.data[1][2][73][0][1]) {
+                        try {
+                            age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.data[1][2][10][0])))) || 'N/A';
+                        } catch (error) {}
+                        try {
+                            installs = formatInstalls(extractedObject.data[1][2][13][2]) || 'N/A';
+                        } catch (error) {}
+                        try {
+                            category = extractedObject.data[1][2][79][0][0][2] || 'N/A';
+                        } catch (error) {}
+                        try {
+                            short = extractedObject.data[1][2][73][0][1] || 'N/A';
+                        } catch (error) {}
+                        if (age != 'N/A' || installs != 'N/A' || category != 'N/A' || short != 'N/A') {
+                            console.log(extractedObject)
                             shouldBreak = true
                             break;
                         }
@@ -37,22 +54,6 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             const url = new URL(window.location.href);
             const searchParams = new URLSearchParams(url.search);
             const id = searchParams.get("id");
-            var age = 'N/A'
-            var installs = 'N/A'
-            var category = 'N/A'
-            var short = 'N/A'
-            try {
-                age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.data[1][2][10][0])))) || 'N/A';
-            } catch (error) {}
-            try {
-                installs = formatInstalls(extractedObject.data[1][2][13][2]) || 'N/A';
-            } catch (error) {}
-            try {
-                category = extractedObject.data[1][2][79][0][0][2] || 'N/A';
-            } catch (error) {}
-            try {
-                short = extractedObject.data[1][2][73][0][1] || 'N/A';
-            } catch (error) {}
             targetDiv.innerHTML = found(age, installs, category, id, short) + targetDiv.innerHTML
         }
     }
