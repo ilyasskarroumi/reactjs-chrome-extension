@@ -5,6 +5,7 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             location.reload();
         }
     }, 500);
+    
     if(location.href.startsWith('https://play.google.com/store/apps/details')){
         const content = document.getElementById('content');
         const url = new URL(window.location.href);
@@ -55,9 +56,61 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             const searchParams = new URLSearchParams(url.search);
             const id = searchParams.get("id");
             targetDiv.innerHTML = found(age, installs, category, id, short) + targetDiv.innerHTML
+            fetchDataUsingFetchAPI(id)
         }
     }
 })
+
+async function fetchDataUsingFetchAPI(id) {
+    try {
+      const response = await fetch('https://api.mobioptions.com/api/get-top-ranking/' + id); // Replace with your API URL
+      if (response.ok) {
+        const data = await response.json();
+        const ranking = document.getElementById("mobi-ranking")
+        const countries = document.getElementById("mobi-countries")
+        ranking.innerHTML = data.top_country ? "Top Ranked" : "Not Ranked"
+        if (Object.keys(data.top).length > 0) {
+            const sortedJson = sortJsonByValues(data.top);
+            countries.innerHTML = ""
+            countries.style.padding = "11px"
+            if (ranking.innerHTML !== "Top Ranked")
+                ranking.innerHTML = `Ranked In ${Object.keys(sortedJson)[0]}`
+            let first = true;
+            for (const top in sortedJson) {
+                if (sortedJson.hasOwnProperty(top)) {
+                    const flagImg = document.createElement('img');
+
+                    flagImg.src = `https://flagcdn.com/h20/${top.toLocaleLowerCase()}.png`;
+                    flagImg.alt = top;
+                    flagImg.title = `${top}: ${sortedJson[top]}`;
+                    if(first) {
+                        first = false
+                    }
+                    else {
+                        flagImg.style.paddingLeft = "5px";
+                    }
+                
+                    countries?.appendChild(flagImg);
+                }
+            }
+        }
+        else{
+            countries.innerHTML = "N/A"
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+}
+
+function sortJsonByValues(json: { [key: string]: number }): { [key: string]: number } {
+    const sortedArray = Object.entries(json).sort((a, b) => a[1] - b[1]);
+    const sortedJson: { [key: string]: number } = {};
+    for (const [key, value] of sortedArray) {
+      sortedJson[key] = value;
+    }
+    return sortedJson;
+}
 
 function formatInstalls(installs) {
     installs = parseInt(installs);
@@ -151,11 +204,22 @@ function notFound(id) {
 
 function found(appAge, installs, category, id, short) {
     return `
-        <br>
-        <br>
-        <br>
-        <div style="direction: ltr; box-sizing: border-box; display: flex; flex-flow: row wrap; margin-top: -16px; width: calc(100% + 16px); margin-left: -16px; -webkit-box-pack: center; justify-content: center;">
-            <div style="padding-left: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+        <div style="direction: ltr; display: flex; margin-top: 20px; flex-flow: row wrap; -webkit-box-pack: center; justify-content: center;">
+            <div style="padding-left: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8.67 22.75H2C1.59 22.75 1.25 22.41 1.25 22V16C1.25 14.48 2.48 13.25 4 13.25H8.67C9.08 13.25 9.42 13.59 9.42 14V22C9.42 22.41 9.08 22.75 8.67 22.75ZM2.75 21.25H7.92V14.75H4C3.31 14.75 2.75 15.31 2.75 16V21.25Z" fill="#fff"/><path d="M15.3302 22.75H8.66016C8.25016 22.75 7.91016 22.41 7.91016 22V12C7.91016 10.48 9.14016 9.25 10.6602 9.25H13.3302C14.8502 9.25 16.0802 10.48 16.0802 12V22C16.0802 22.41 15.7502 22.75 15.3302 22.75ZM9.42015 21.25H14.5902V12C14.5902 11.31 14.0302 10.75 13.3402 10.75H10.6702C9.98015 10.75 9.42015 11.31 9.42015 12V21.25Z" fill="#fff"/><path d="M22.0001 22.75H15.3301C14.9201 22.75 14.5801 22.41 14.5801 22V17C14.5801 16.59 14.9201 16.25 15.3301 16.25H20.0001C21.5201 16.25 22.7501 17.48 22.7501 19V22C22.7501 22.41 22.4101 22.75 22.0001 22.75ZM16.0801 21.25H21.2501V19C21.2501 18.31 20.6901 17.75 20.0001 17.75H16.0801V21.25Z" fill="#fff"/><path d="M13.6999 8.34999C13.4599 8.34999 13.1599 8.27997 12.8199 8.07997L11.9999 7.58998L11.1899 8.06999C10.3699 8.55999 9.82989 8.26998 9.62989 8.12998C9.42989 7.98998 8.99989 7.54998 9.20989 6.62998L9.39989 5.79997L8.71989 5.11997C8.29989 4.69997 8.14989 4.19997 8.29989 3.73997C8.44989 3.27997 8.85989 2.95996 9.43989 2.85996L10.3099 2.70997L10.7999 1.72999C11.3399 0.65999 12.6499 0.65999 13.1799 1.72999L13.6699 2.70997L14.5399 2.85996C15.1199 2.95996 15.5399 3.27997 15.6799 3.73997C15.8299 4.19997 15.6699 4.69997 15.2599 5.11997L14.5799 5.79997L14.7699 6.62998C14.9799 7.55998 14.5499 7.98999 14.3499 8.13999C14.2599 8.21999 14.0299 8.34999 13.6999 8.34999ZM11.9999 6.07997C12.2399 6.07997 12.4799 6.13999 12.6799 6.25999L13.2399 6.58998L13.1199 6.04997C13.0199 5.62997 13.1699 5.11998 13.4799 4.80998L13.9899 4.29997L13.3599 4.18998C12.9599 4.11998 12.5699 3.82998 12.3899 3.46998L11.9999 2.71998L11.6199 3.46998C11.4399 3.82998 11.0499 4.11998 10.6499 4.18998L10.0199 4.28999L10.5299 4.79997C10.8399 5.10997 10.9799 5.61999 10.8899 6.03999L10.7699 6.57997L11.3299 6.24998C11.5199 6.12998 11.7599 6.07997 11.9999 6.07997Z" fill="#fff"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-ranking" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Ranking</div>
+                </div>
+            </div>
+            <div style="padding-left: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
                         <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
@@ -164,12 +228,12 @@ function found(appAge, installs, category, id, short) {
                             </svg>
                         </div>
                     </div>
-                    <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">${appAge}</div>
+                    <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">${appAge}</div>
                     <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">App Age</div>
                 </div>
             </div>
-            <div style="padding-left: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <div style="padding-left: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
                         <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
@@ -178,12 +242,12 @@ function found(appAge, installs, category, id, short) {
                             </svg>
                         </div>
                     </div>
-                    <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">${installs}</div>
+                    <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">${installs}</div>
                     <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Installs</div>
                 </div>
             </div>
-            <div style="padding-left: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <div style="padding-left: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <a href="https://play.google.com/store/apps/category/${category}" target="_blank">
                         <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
@@ -193,7 +257,7 @@ function found(appAge, installs, category, id, short) {
                                 </svg>
                             </div>
                         </div>
-                        <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">${category !== 'N/A' ? convertToTitleCase(category) : category}</div>
+                        <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">${category !== 'N/A' ? convertToTitleCase(category) : category}</div>
                         <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                         <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Category</div>
                     </a>
@@ -212,7 +276,7 @@ function found(appAge, installs, category, id, short) {
                     </div>
                 </div>
             </div>
-            <div style="padding-top: 16px; padding-right: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <div style="padding-top: 15px; padding-right: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <a href="https://mobioptions.com/play/app/${id}" target="_blank">
                         <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
@@ -238,13 +302,13 @@ function found(appAge, installs, category, id, short) {
                                 </svg>
                             </div>
                         </div>
-                        <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">MobiOptions</div>
+                        <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">MobiOptions</div>
                         <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                         <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
                     </a>
                 </div>
             </div>
-            <div style="padding-right: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <div style="padding-right: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <a href="https://www.appbrain.com/app/${id}" target="_blank">
                         <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
@@ -256,13 +320,13 @@ function found(appAge, installs, category, id, short) {
                                 </svg>
                             </div>
                         </div>
-                        <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">AppBrain</div>
+                        <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">AppBrain</div>
                         <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                         <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
                     </a>
                 </div>
             </div>
-            <div style="padding-right: 16px; padding-top: 16px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+            <div style="padding-right: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
                 <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
                     <a href="https://apkcombo.com/app/${id}" target="_blank">
                         <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
@@ -276,14 +340,28 @@ function found(appAge, installs, category, id, short) {
                                 </svg>
                             </div>
                         </div>
-                        <div style="color: rgb(238, 238, 238); font-size: 16px;padding: 16px;">APKCombo</div>
+                        <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">APKCombo</div>
                         <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                         <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
                     </a>
                 </div>
             </div>
+            <div style="padding-right: 15px; padding-top: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg fill="#fff" width="30px" height="30px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" data-name="Layer 1">
+                                <path d="M21,4H18V3a1,1,0,0,0-1-1H7A1,1,0,0,0,6,3V4H3A1,1,0,0,0,2,5V8a4,4,0,0,0,4,4H7.54A6,6,0,0,0,11,13.91V16H10a3,3,0,0,0-3,3v2a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1V19a3,3,0,0,0-3-3H13V13.91A6,6,0,0,0,16.46,12H18a4,4,0,0,0,4-4V5A1,1,0,0,0,21,4ZM6,10A2,2,0,0,1,4,8V6H6V8a6,6,0,0,0,.35,2Zm8,8a1,1,0,0,1,1,1v1H9V19a1,1,0,0,1,1-1ZM16,8A4,4,0,0,1,8,8V4h8Zm4,0a2,2,0,0,1-2,2h-.35A6,6,0,0,0,18,8V6h2Z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-countries" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Countries</div>
+                </div>
+            </div>
         </div>
-        <div style="margin-top: 16px; width: calc(100% + 16px); display: flex; justify-content: center;">
+        <div style="margin-top: 15px; width: calc(100% + 15px); display: flex; justify-content: center;">
             <div style="background-image: linear-gradient(to bottom left, #279dff, #2430ef); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 4px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; overflow: hidden; text-align: center; font-size: 18px;">
                 <div style="padding: 10px;">
                     ${short}
