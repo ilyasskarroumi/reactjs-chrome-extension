@@ -36,6 +36,11 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
                         try {
                             age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.data[1][2][10][0])))) || 'N/A';
                         } catch (error) {}
+                        if (age === 'N/A') {
+                            try {
+                                age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.data[1][2][145][0][0])))) || 'N/A';
+                            } catch (error) {}
+                        }
                         try {
                             installs = formatInstalls(extractedObject.data[1][2][13][2]) || 'N/A';
                         } catch (error) {}
@@ -47,6 +52,7 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
                         } catch (error) {}
                         if (age != 'N/A' || installs != 'N/A' || category != 'N/A' || short != 'N/A') {
                             shouldBreak = true
+                            console.log(extractedObject.data[1][2][145][0][0])
                             break;
                         }
                     } catch (error) {}
