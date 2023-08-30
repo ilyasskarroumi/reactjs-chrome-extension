@@ -2,14 +2,20 @@ import React from "react";
 import './popup.css';
 
 const Popup = () => {
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.preventDefault()
     window.open("https://play.google.com/store", "_blank");
+  };
+  const handleRightClick = (e) => {
+    e.preventDefault()
+    window.open("https://www.apple.com/app-store/", "_blank");
   };
 
   return (
     <div
       className="flex justify-center bg-gray-200 items-center h-screen"
       onClick={handleClick}
+      onContextMenu={handleRightClick}
       style={{cursor: "pointer"}}
     >
       <div className="text-center">
@@ -23,7 +29,7 @@ const Popup = () => {
         </div>
         <div className="mt-4">
           <p className="text-sm text-blue-600">
-            Click anywhere to go to Google Play Store
+            Click to Google Play Store. Right Click to Go to App Store
           </p>
         </div>
       </div>

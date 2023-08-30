@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Mobioptions ASO Best ASO Toolbox For Google Play",
-    "description": "Enhances the Google Play Store™ with various ASO features.",
-    "version": "1.0.5",
+    "name": "Mobioptions ASO Best ASO Toolbox For Google Play & App Store",
+    "description": "Enhances the Google Play Store™ & App Store with various ASO features.",
+    "version": "1.0.6",
     "action" : {
         "default_popup": "popup.html",
         "default_title": "MobiOptions",
