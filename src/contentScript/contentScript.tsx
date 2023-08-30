@@ -13,7 +13,7 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
         const id = searchParams.get("id");
         if(content) {
             if(id && id !== '')
-                content.innerHTML += notFound(id)
+                content.innerHTML += notFoundAndroid(id)
         }
         else {
             const htmlContent = document.documentElement.outerHTML;
@@ -64,20 +64,35 @@ chrome.runtime.sendMessage('I am loading content script', (response) => {
             const url = new URL(window.location.href);
             const searchParams = new URLSearchParams(url.search);
             const id = searchParams.get("id");
-            targetDiv.innerHTML = found(age, installs, category, id, short, name) + targetDiv.innerHTML
+            targetDiv.innerHTML = foundAndroid(age, installs, category, id, short, name) + targetDiv.innerHTML
             fetchDataUsingFetchAPI(id)
+        }
+    }
+
+    else if (/^https:\/\/apps\.apple\.com\/(.*\/?)app\//.test(location.href)) {
+        const id = window.location.href.match(/\/(id)?(\d+)/)[2]
+        const section = document.querySelector('section.l-content-width.section.section--hero.product-hero');
+        if (section) {
+            const scriptElement = document.querySelector('script[name="schema:software-application"][type="application/ld+json"]');
+            var age = 'N/A';
+            try  {
+                const extractedObject = JSON.parse(scriptElement.innerHTML)
+                age = calculateAge(convertFrenchShortMonthToEnglish(convertAndSwapDate((extractedObject.datePublished)))) || 'N/A';
+            } catch (error) {}
+            section.innerHTML += foundIOS(age, id)
+            fetchDataFromSensorTower(id)
         }
     }
 })
 
 async function fetchDataUsingFetchAPI(id: string) {
+    const ranking = document.getElementById("mobi-ranking-android")
+    const countries = document.getElementById("mobi-countries-android")
     try {
       const response = await fetch('https://api.mobioptions.com/api/get-top-ranking/' + id);
       if (response.ok) {
         const data = await response.json();
-        const ranking = document.getElementById("mobi-ranking")
-        const countries = document.getElementById("mobi-countries")
-        const imgElement = document.getElementById('mobi-picture') as HTMLImageElement;;
+        const imgElement = document.getElementById('mobi-picture-android') as HTMLImageElement;;
         imgElement.src = data.path_qr;
         ranking.innerHTML = data.top_country ? "Top Ranked" : "Not Ranked"
         if (data.top && Object.keys(data.top).length > 0) {
@@ -121,9 +136,76 @@ async function fetchDataUsingFetchAPI(id: string) {
                 countries.innerHTML = "Not Ranked"
             }
         }
+      } else {
+        ranking.innerHTML = 'N/A'
+        countries.innerHTML = 'N/A'
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+        ranking.innerHTML = 'N/A'
+        countries.innerHTML = 'N/A'
+    }
+}
+
+async function fetchDataFromSensorTower(id: string) {
+    const ranking = document.getElementById("mobi-ranking-ios")
+    const installs = document.getElementById("mobi-installs-ios")
+    const advertised = document.getElementById("mobi-advertised-ios")
+    const countries = document.getElementById("mobi-countries-ios")
+
+    try {
+        const response = await fetch('https://app.sensortower.com/overview/' + id);
+        if (response.ok) {
+            const data = await response.text()
+            const match = data.match(/downloaded\s*(.*?)\./i);
+            if (match && match[1])
+                installs.innerHTML = match[1].trim().replace('times ', '');
+            else
+                installs.innerHTML == 'N/A'
+        } else {
+            installs.innerHTML = 'N/A'
+        }
+    } catch (error) {
+        installs.innerHTML = 'N/A'
+    }
+    
+    try {
+        const response = await fetch('https://app.sensortower.com/api/ios/apps/' + id);
+        if (response.ok) {
+            const data = await response.json()
+            advertised.innerHTML = data.advertised_on_any_network && data.advertised_on_any_network.value ? data.advertised_on_any_network.value.split(' ')[0] : "N/A"
+            if (data.top_countries && data.top_countries.length > 0) {
+                ranking.innerHTML = 'Top Ranked'
+                let first = true;
+                countries.innerHTML = ""
+                countries.style.padding = "11px"
+                for (const top of data.top_countries) {
+                    console.log(top)
+                    const flagImg = document.createElement('img');
+
+                    flagImg.src = `https://flagcdn.com/h20/${top.toLocaleLowerCase()}.png`;
+                    flagImg.alt = top;
+                    flagImg.title = top;
+
+                    if(first)
+                        first = false;
+                    else
+                        flagImg.style.paddingLeft = "5px";
+                
+                    countries?.appendChild(flagImg);
+                }
+            } else {
+                ranking.innerHTML = "Not Ranked"
+                countries.innerHTML = "Not Ranked"
+            }
+        } else {
+            ranking.innerHTML = 'N/A'
+            advertised.innerHTML = 'N/A'
+            countries.innerHTML = 'N/A'
+        }
+    } catch (error) {
+        ranking.innerHTML = 'N/A'
+        advertised.innerHTML = 'N/A'
+        countries.innerHTML = 'N/A'
     }
 }
 
@@ -215,10 +297,10 @@ function convertToTitleCase(input: string): string {
       .join(' ');
 }
 
-function notFound(id: string) {
+function notFoundAndroid(id: string) {
     return `
         <div style="direction: ltr; color: rgb(102, 102, 102); font-weight: bold; display: flex; justify-content: center; align-items: center; border-width: 1px; border-style: solid; border-color: rgb(161, 180, 217); border-image: initial; padding: 12px 0px;">
-            <a style="display: flex; color: rgb(102, 102, 102); text-decoration: none;" href="https://mobioptions.com/play/app/${id}" target="_blank">
+            <a style="display: flex; color: rgb(102, 102, 102); text-decoration: none;" href="https://beta.mobioptions.com/details?id=${id}" target="_blank">
                 <img width="75px" style="padding-right: 25px" src="https://mobioptions.com/wp-content/uploads/2023/06/logo.png">
                 <p>Check this app meta data has been stored at MobiOptions</p>
             </a>
@@ -226,7 +308,7 @@ function notFound(id: string) {
     `
 }
 
-function found(appAge: string, installs: string, category: string, id: string, short: string, name: string) {
+function foundAndroid(appAge: string, installs: string, category: string, id: string, short: string, name: string) {
     return `
         <div style="direction: ltr; display: flex; margin: 35px 0px 15px 0px; flex-flow: row wrap; -webkit-box-pack: center; justify-content: center;">
             <div style="box-sizing: border-box; margin: 0px; flex-direction: row;">
@@ -238,7 +320,7 @@ function found(appAge: string, installs: string, category: string, id: string, s
                             </svg>
                         </div>
                     </div>
-                    <div id="mobi-ranking" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <div id="mobi-ranking-android" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
                     <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Ranking</div>
                 </div>
@@ -289,7 +371,7 @@ function found(appAge: string, installs: string, category: string, id: string, s
             </div>
             <div style="box-sizing: border-box; margin: 0px; display: flex;">
                 <div style="transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; overflow: hidden; min-width: 100px; display: flex; align-self: center; justify-content: center;">
-                    <img style="margin:10px" width="100px" height="100px" id="mobi-picture" src="https://cdn.mobioptions.com/developer-assets/images/icon.png" />
+                    <img style="margin:10px" width="100px" height="100px" id="mobi-picture-android" src="https://cdn.mobioptions.com/developer-assets/images/icon.png" />
                 </div>
             </div>
             <div style="padding-right: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
@@ -385,7 +467,7 @@ function found(appAge: string, installs: string, category: string, id: string, s
                             </svg>
                         </div>
                     </div>
-                    <div id="mobi-countries" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <div id="mobi-countries-android" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
                     <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
                     <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Countries</div>
                 </div>
@@ -395,6 +477,106 @@ function found(appAge: string, installs: string, category: string, id: string, s
             <div style="background-image: linear-gradient(to bottom left, #279dff, #2430ef); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 4px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; overflow: hidden; text-align: center; font-size: 18px;">
                 <div style="padding: 10px;">
                     ${short}
+                </div>
+            </div>
+        </div>
+    `
+}
+
+function foundIOS(appAge: string, id: string) {
+    return `
+        <div style="direction: ltr; display: flex; margin: 35px 0px 0px 0px; flex-flow: row wrap; -webkit-box-pack: center; justify-content: center;">
+            <div style="box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8.67 22.75H2C1.59 22.75 1.25 22.41 1.25 22V16C1.25 14.48 2.48 13.25 4 13.25H8.67C9.08 13.25 9.42 13.59 9.42 14V22C9.42 22.41 9.08 22.75 8.67 22.75ZM2.75 21.25H7.92V14.75H4C3.31 14.75 2.75 15.31 2.75 16V21.25Z" fill="#fff"/><path d="M15.3302 22.75H8.66016C8.25016 22.75 7.91016 22.41 7.91016 22V12C7.91016 10.48 9.14016 9.25 10.6602 9.25H13.3302C14.8502 9.25 16.0802 10.48 16.0802 12V22C16.0802 22.41 15.7502 22.75 15.3302 22.75ZM9.42015 21.25H14.5902V12C14.5902 11.31 14.0302 10.75 13.3402 10.75H10.6702C9.98015 10.75 9.42015 11.31 9.42015 12V21.25Z" fill="#fff"/><path d="M22.0001 22.75H15.3301C14.9201 22.75 14.5801 22.41 14.5801 22V17C14.5801 16.59 14.9201 16.25 15.3301 16.25H20.0001C21.5201 16.25 22.7501 17.48 22.7501 19V22C22.7501 22.41 22.4101 22.75 22.0001 22.75ZM16.0801 21.25H21.2501V19C21.2501 18.31 20.6901 17.75 20.0001 17.75H16.0801V21.25Z" fill="#fff"/><path d="M13.6999 8.34999C13.4599 8.34999 13.1599 8.27997 12.8199 8.07997L11.9999 7.58998L11.1899 8.06999C10.3699 8.55999 9.82989 8.26998 9.62989 8.12998C9.42989 7.98998 8.99989 7.54998 9.20989 6.62998L9.39989 5.79997L8.71989 5.11997C8.29989 4.69997 8.14989 4.19997 8.29989 3.73997C8.44989 3.27997 8.85989 2.95996 9.43989 2.85996L10.3099 2.70997L10.7999 1.72999C11.3399 0.65999 12.6499 0.65999 13.1799 1.72999L13.6699 2.70997L14.5399 2.85996C15.1199 2.95996 15.5399 3.27997 15.6799 3.73997C15.8299 4.19997 15.6699 4.69997 15.2599 5.11997L14.5799 5.79997L14.7699 6.62998C14.9799 7.55998 14.5499 7.98999 14.3499 8.13999C14.2599 8.21999 14.0299 8.34999 13.6999 8.34999ZM11.9999 6.07997C12.2399 6.07997 12.4799 6.13999 12.6799 6.25999L13.2399 6.58998L13.1199 6.04997C13.0199 5.62997 13.1699 5.11998 13.4799 4.80998L13.9899 4.29997L13.3599 4.18998C12.9599 4.11998 12.5699 3.82998 12.3899 3.46998L11.9999 2.71998L11.6199 3.46998C11.4399 3.82998 11.0499 4.11998 10.6499 4.18998L10.0199 4.28999L10.5299 4.79997C10.8399 5.10997 10.9799 5.61999 10.8899 6.03999L10.7699 6.57997L11.3299 6.24998C11.5199 6.12998 11.7599 6.07997 11.9999 6.07997Z" fill="#fff"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-ranking-ios" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Ranking</div>
+                </div>
+            </div>
+            <div style="padding-left: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg fill="#fff" width="30px" height="30px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M17,2 C17.5522847,2 18,2.44771525 18,3 L18,4 L19,4 C20.6568542,4 22,5.34314575 22,7 L22,19 C22,20.6568542 20.6568542,22 19,22 L5,22 C3.34314575,22 2,20.6568542 2,19 L2,7 C2,5.34314575 3.34314575,4 5,4 L6,4 L6,3 C6,2.44771525 6.44771525,2 7,2 C7.55228475,2 8,2.44771525 8,3 L8,4 L16,4 L16,3 C16,2.44771525 16.4477153,2 17,2 Z M4,12 L4,19 C4,19.5522847 4.44771525,20 5,20 L19,20 C19.5522847,20 20,19.5522847 20,19 L20,12 L4,12 Z M4,10 L20,10 L20,7 C20,6.44771525 19.5522847,6 19,6 L18,6 L18,7 C18,7.55228475 17.5522847,8 17,8 C16.4477153,8 16,7.55228475 16,7 L16,6 L8,6 L8,7 C8,7.55228475 7.55228475,8 7,8 C6.44771525,8 6,7.55228475 6,7 L6,6 L5,6 C4.44771525,6 4,6.44771525 4,7 L4,10 Z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">${appAge}</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">App Age</div>
+                </div>
+            </div>
+            <div style="padding-left: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2a1 1 0 0 1 1 1v10.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L11 13.586V3a1 1 0 0 1 1-1zM5 17a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a1 1 0 0 1 1-1z" fill="#fff"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-installs-ios" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Installs</div>
+                </div>
+            </div>
+            <div style="box-sizing: border-box; margin: 0px; display: flex;">
+                <div style="transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; overflow: hidden; min-width: 100px; display: flex; align-self: center; justify-content: center;">
+                    <img style="margin:10px" width="100px" height="100px" id="mobi-picture-ios" src="https://api.qrcode-monkey.com/qr/custom?data=https://apps.apple.com/us/app/app/id${id}" />
+                </div>
+            </div>
+            <div style="padding-right: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <a href="https://app.sensortower.com/overview/${id}" style="text-decoration: none" target="_blank">
+                        <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                            <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 500 500" style="shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd">
+                                    <path style="opacity:.994" fill="#fff" d="M243.5 3.5c93.783 1.795 165.616 42.129 215.5 121 34.115 62.402 41.781 128.069 23 197-15.733 47.969-43.233 87.803-82.5 119.5-59.073 44.893-125.406 60.559-199 47-58.928-12.598-106.761-42.765-143.5-90.5-41.78-56.121-57.447-119.121-47-189C21.982 142.019 55.149 88.852 109.5 49c40.092-28.541 84.758-43.708 134-45.5Zm-8 36c86.234-1.98 151.401 33.686 195.5 107 35.934 69.749 35.267 139.082-2 208-34.088 55.732-83.422 89.399-148 101-1.326-.255-2.326-.922-3-2a22338.415 22338.415 0 0 1-12-183c12.573-10.88 14.573-23.547 6-38-11.1-12.071-23.933-14.238-38.5-6.5-10.69 8.915-13.857 20.081-9.5 33.5 2.243 4.248 5.243 7.914 9 11l.5 7a39944.923 39944.923 0 0 0-12 178c-66.177-10.375-116.677-44.042-151.5-101-37.998-70.657-37.998-141.324 0-212 38.301-61.402 93.467-95.735 165.5-103Z"></path>
+                                    <path style="opacity:.977" fill="#fff" d="M237.5 110.5c65.186-1.843 111.686 26.49 139.5 85 22.408 67.077 6.242 122.577-48.5 166.5a215.783 215.783 0 0 1-17 10c-4.398 1.378-7.898.212-10.5-3.5a173.46 173.46 0 0 1-3-38c42.16-31.151 54.493-71.484 37-121-22.088-41.463-56.588-59.296-103.5-53.5-47.058 12.55-72.391 43.05-76 91.5 1.099 35.542 16.265 63.208 45.5 83a157.694 157.694 0 0 1-3 38c-2.602 3.712-6.102 4.878-10.5 3.5-48.306-26.426-73.306-67.26-75-122.5 1.096-53.033 24.096-93.533 69-121.5 17.577-9.639 36.244-15.472 56-17.5Z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">SensorTower</div>
+                        <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                        <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Open In</div>
+                    </a>
+                </div>
+            </div>
+            <div style="padding-right: 15px; box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21.9348 15.6583L18.6383 3.37924C18.2799 2.0442 16.6391 1.55235 15.603 2.46935L13.5253 4.30818C11.2132 6.35446 8.45556 7.83537 5.47068 8.63362C2.97216 9.30181 1.49142 11.8725 2.16089 14.3662C2.83037 16.8599 5.40053 18.3472 7.89906 17.679C10.8839 16.8807 14.014 16.787 17.0415 17.4054L19.762 17.961C21.1187 18.2381 22.2932 16.9933 21.9348 15.6583Z" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M7.71747 8L11.5 22" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-advertised-ios" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Advertised</div>
+                </div>
+            </div>
+            <div style="box-sizing: border-box; margin: 0px; flex-direction: row;">
+                <div style="text-align: center; background-color: rgb(18, 18, 18); color: rgb(255, 255, 255); transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms; border-radius: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px; background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)); overflow: hidden; min-width: 110px;">
+                    <div style="display: block; background-size: cover; background-repeat: no-repeat; background-position: center center;">
+                        <div style="padding: 10px; background-image: linear-gradient(to bottom left, #279dff, #2430ef); text-align: center;">
+                            <svg fill="#fff" width="30px" height="30px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" data-name="Layer 1">
+                                <path d="M21,4H18V3a1,1,0,0,0-1-1H7A1,1,0,0,0,6,3V4H3A1,1,0,0,0,2,5V8a4,4,0,0,0,4,4H7.54A6,6,0,0,0,11,13.91V16H10a3,3,0,0,0-3,3v2a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1V19a3,3,0,0,0-3-3H13V13.91A6,6,0,0,0,16.46,12H18a4,4,0,0,0,4-4V5A1,1,0,0,0,21,4ZM6,10A2,2,0,0,1,4,8V6H6V8a6,6,0,0,0,.35,2Zm8,8a1,1,0,0,1,1,1v1H9V19a1,1,0,0,1,1-1ZM16,8A4,4,0,0,1,8,8V4h8Zm4,0a2,2,0,0,1-2,2h-.35A6,6,0,0,0,18,8V6h2Z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="mobi-countries-ios" style="color: rgb(238, 238, 238); font-size: 15px;padding: 15px;">Loading...</div>
+                    <hr style="margin: 0px;flex-shrink: 0;border-width: 0px 0px thin;border-style: solid;border-color: rgba(255, 255, 255, 0.12);">
+                    <div style="color: rgb(117, 117, 117); text-transform: uppercase; padding: 15px 5px;">Countries</div>
                 </div>
             </div>
         </div>
